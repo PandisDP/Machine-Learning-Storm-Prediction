@@ -78,7 +78,7 @@ class RedNeuronal(object):
         # Create Model with 2 capas
         hidden_layer_sizes = (neu1, neu2)
         clf = MLPClassifier(solver='lbfgs', hidden_layer_sizes=hidden_layer_sizes, activation=activation, max_iter=10000, random_state=42, learning_rate_init=0.1)
-        ft=self.K_Fold(clf,N_SP,X_train,y_train,X_test, n_train , n_test) # This objetc contained all inforamtion about models generated in Kfolds
+        ft=self.K_Fold(clf,N_SP,X_train,y_train,X_test, n_train , n_test,path_file) # This objetc contained all inforamtion about models generated in Kfolds
         best=-99
         k=0
         savedir= os.path.join(os.getcwd(),path_file)
