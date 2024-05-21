@@ -1,7 +1,12 @@
-database/
-database_ms/
-database_ns/
-datasetsml/
-models/
-myenv
+/database/
+/database_ms/
+/datasetsml/
+/models/
+/training_output/
+/Casiope_Info/
+myenv/
+env/
+*.pyc
+*.log
+.DS_Store
 

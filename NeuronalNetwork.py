@@ -63,10 +63,10 @@ class RedNeuronal(object):
         print(classification_report(y_test,y_pred))
         bnd= accuracy_score(y_test,y_pred)
         return bnd
-    def Generate_Neuronal_Model_KNFold(self,activation,neu1,neu2,N_SP,path_file):
+    def Generate_Neuronal_Model_KNFold(self,activation,neu1,neu2,N_SP,path_file,iterations):
         # This code serves to fit model with activation function, neurons for each level
         X = self.data.drop(self.target, axis=1)
-        y = self.data[self.target].ravel()
+        y = self.data[self.target].to_numpy()
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=self.SEED)
         # Transform data
         scaler = MinMaxScaler(feature_range=(0, 1))
@@ -77,7 +77,7 @@ class RedNeuronal(object):
         n_test= X_test.shape[0]
         # Create Model with 2 capas
         hidden_layer_sizes = (neu1, neu2)
-        clf = MLPClassifier(solver='lbfgs', hidden_layer_sizes=hidden_layer_sizes, activation=activation, max_iter=10000, random_state=42, learning_rate_init=0.1)
+        clf = MLPClassifier(solver='lbfgs', hidden_layer_sizes=hidden_layer_sizes, activation=activation, max_iter=iterations, random_state=42, learning_rate_init=0.1)
         ft=self.K_Fold(clf,N_SP,X_train,y_train,X_test, n_train , n_test,path_file) # This objetc contained all inforamtion about models generated in Kfolds
         best=-99
         k=0
@@ -87,18 +87,20 @@ class RedNeuronal(object):
         joblib.dump(scaler,file_scaler)
         model_return=[]
         for i ,clf_i in enumerate(ft):
-          print("Start Results Model  :", i , " Fold")
-          clft= joblib.load(clf_i) # This model was trained
-          y_pred=clft.predict(X_test)
-          mcknn=confusion_matrix(y_test, y_pred)
-          print("Confusion Matrix: {}".format(mcknn))
-          print("Report of Clasification Indicator")
-          print(classification_report(y_test, y_pred))
-          print("End Results Model  :", i , " Fold")
-          ac=accuracy_score(y_test,y_pred)
-          if ac> best:
-            best=ac
-            k=i
+            print("Start Results Model  :", i , " Fold")
+            clft= joblib.load(clf_i) # This model was trained
+            y_pred=clft.predict(X_test)
+            labels = np.unique(np.concatenate((y_test, y_pred)))
+            mcknn = confusion_matrix(y_test, y_pred, labels=labels)
+            #mcknn=confusion_matrix(y_test, y_pred)
+            print("Confusion Matrix: {}".format(mcknn))
+            print("Report of Clasification Indicator")
+            print(classification_report(y_test, y_pred))
+            print("End Results Model  :", i , " Fold")
+            ac=accuracy_score(y_test,y_pred)
+            if ac> best:
+                best=ac
+                k=i
         best_model= joblib.load(ft[k])
         model_return.append(best_model)
         model_return.append(scaler)

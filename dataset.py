@@ -46,7 +46,6 @@ class data_set(object):
         ruta_destino = os.path.join(os.getcwd(),PATH_OUTPUT, f"Corr_{namex}.png")
         plt.savefig(ruta_destino)
         plt.close() 
-   
     def outliers_clean_base(self,df,target_list):
         df_temp= df.copy()
         df_over= self.__Outlier_Analysis(df_temp,target_list)
@@ -96,7 +95,6 @@ class data_set(object):
             ruta_destino = os.path.join(os.getcwd(),path, f"_{namex}_{i_elm}.png")
             plt.savefig(ruta_destino)
             plt.close()
-   
     def __Analysis_byAtrr(self, obj, atr, lst_p,target,path):
         plt.figure(figsize=(10, 6))
         for i in lst_p:
@@ -116,6 +114,10 @@ class data_set(object):
             print("Analysis of {}".format(j))
             self.__Analysis_byAtrr(df, j, lst_p,target,path)
 
-    def load_database(self,rut_file):
+    def load_database(self,rut_file,drop_columns=[0,3]):
         df = pd.read_csv(rut_file)
+        columns_x= []
+        for i, val in enumerate(drop_columns):
+            columns_x.append(df.columns[drop_columns[i]])
+        df = df.drop(columns=columns_x,axis=1)
         return df
