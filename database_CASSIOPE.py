@@ -5,7 +5,7 @@ import os
 import pandas as pd
 import spacepy.pycdf as pycdf
 class DataBase_CASSIOPE:
-    def __init__(self,folder_path,settings_target):
+    def __init__(self,folder_path,folder_path_output,settings_target):
         """
         This class serve to process data for DSCOVR_PlasMAG
         Parameters:
@@ -13,8 +13,9 @@ class DataBase_CASSIOPE:
         settings_target (str): This variable indica a target like  kp
         """
         self.folder_path=folder_path
+        self.folder_path_output=folder_path_output
         self.settings_target=settings_target
-    def generate_DataSet(self,lbl_settings,params_):
+    def generate_DataSet(self,lbl_settings,params_,MAX_ITER=10):
         """
         This function serve to create datasets by params_
         Parameters:
@@ -22,19 +23,43 @@ class DataBase_CASSIOPE:
         params_ (lst): This a list of parameters
         """
         all_dataframes = [] 
+        i_ter=0
+        i_terg=0
+        num_files = len([f for f in os.listdir(self.folder_path) if f.endswith('.zip')])
+        print('The files number is :','  ',num_files)
         for filename in os.listdir(self.folder_path):
-            if filename.endswith(".zip"):
-                full_path = os.path.join(self.folder_path, filename)
-                print(f"Processing {full_path}...")
-                self.__load_file_CDS_UnitFileZip(full_path,params_,all_dataframes,lbl_settings)
+            if not filename.endswith(".zip"):
+                continue
+            i_ter+=1
+            i_terg+=1
+            if i_ter<=MAX_ITER:
+                self.__procces_control(filename,i_ter,params_,all_dataframes,lbl_settings)
+                if i_terg== num_files:
+                    self.__create_files(all_dataframes,params_)
+            else:
+                i_ter=1
+                self.__create_files(all_dataframes,params_)
+                all_dataframes = []
+                self.__procces_control(filename,i_ter,params_,all_dataframes,lbl_settings)
+                if i_terg== num_files:
+                    self.__create_files(all_dataframes,params_)     
+        
+    def __procces_control(self,filename,i_ter,params_,all_dataframes,lbl_settings):
+        if filename.endswith(".zip"):
+                    full_path = os.path.join(self.folder_path, filename)
+                    print(f"Processing {i_ter}...")
+                    self.__load_file_CDS_UnitFileZip(full_path,params_,all_dataframes,lbl_settings)
+    def __create_files(self,all_dataframes,params_):
         if(len(all_dataframes)>0):
+            print('Saving files...')
             for i,db in enumerate(all_dataframes):
-                path_file = self.folder_path+ str(params_[i][1])+".csv"
+                path_file = self.folder_path_output+ str(params_[i][1])+".csv"
                 write_header = not os.path.exists(path_file)
                 db.to_csv(path_file, mode='a', header=write_header, index=False)
 
     def __load_file_CDS_UnitFileZip(self,path_zip,params_,all_data,lbl_settings):
         filename_within_zip = os.path.basename(path_zip).replace('.zip', '')
+        print(filename_within_zip)
         temp_dir = tempfile.mkdtemp()
         try:
             with zipfile.ZipFile(path_zip, 'r') as zip_ref:

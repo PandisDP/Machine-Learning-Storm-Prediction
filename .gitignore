@@ -1,9 +1,13 @@
 /database/
 /database_ms/
 /datasetsml/
+/datasetsml2024/
 /models/
 /training_output/
 /Casiope_Info/
+/datasetsml2024_short/
+/results/
+/training_output2024/
 myenv/
 env/
 *.pyc

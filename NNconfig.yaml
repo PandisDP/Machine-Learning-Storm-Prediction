@@ -1,0 +1,10 @@
+#### Parameters of Tunning Hyperparameters #############
+activation : ['logistic', 'relu', 'identity', 'tanh']
+solver: ["adam"] 
+max_iter_i: [1000,10000]
+learning_rate_init : [0.1,0.01,0.001]
+n_iter : 100
+### General Parameters
+test_size : 0.3
+cross_validation : 5
+#####

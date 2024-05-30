@@ -50,18 +50,25 @@ class data_set(object):
         df_temp= df.copy()
         df_over= self.__Outlier_Analysis(df_temp,target_list)
         return df_over
-    def drop_high_null_columns(self,df, threshold=0.8):
+    def drop_high_null_columns(self,df, threshold=0.05,target_list=''):
         if not (0 <= threshold <= 1):
             raise ValueError("Threshold must be a float between 0 and 1.")
         to_drop=[]
         for col in df.columns:
-            null_ = df[col].isnull().sum()
-            if null_/df.shape[0]>threshold:
-                to_drop.append(col)
+            if col != target_list:
+                null_ = df[col].isnull().sum()
+                if null_/df.shape[0]>threshold:
+                    to_drop.append(col)
+            else:
+                null_ = df[col].isnull().sum()
+                print(null_,'__',null_/df.shape[0])
+                print((df[col] == 80).sum())  
         df_cleaned = df.drop(columns=to_drop)
         # Rellenar los NaN con la media de su columna respectiva
-        df_filled = df_cleaned.apply(lambda col: col.fillna(col.mean()), axis=0)
-        return df_filled
+        columns_to_include = df_cleaned.columns.drop(target_list)
+        df_cleaned[columns_to_include] = df_cleaned[columns_to_include].apply(lambda col: col.fillna(col.mean()), axis=0)
+        #df_filled = df_cleaned.apply(lambda col: col.fillna(col.mean()), axis=0)
+        return df_cleaned
 
     def balance_subsample(self,df,nums):
         count_clase=df[nums].value_counts()
@@ -71,7 +78,8 @@ class data_set(object):
             if i>0:
                 df_temp= df[df[nums]==count_clase.index[i]]
                 df_temp_under= df_temp.sample(count_clase[count_clase.index[0]],replace=True)
-                df_over= pd.concat([df_temp_under,df_over],axis=0)      
+                df_over= pd.concat([df_temp_under,df_over],axis=0)
+        df_over=df_over.reset_index(drop=True)              
         return df_over
 
     def __Outlier_Analysis(self,data,target):
@@ -119,5 +127,5 @@ class data_set(object):
         columns_x= []
         for i, val in enumerate(drop_columns):
             columns_x.append(df.columns[drop_columns[i]])
-        df = df.drop(columns=columns_x,axis=1)
+        df = df.drop(columns=columns_x,axis=1).reset_index(drop=True)
         return df

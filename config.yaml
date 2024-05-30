@@ -1,6 +1,6 @@
 
 
-############################## DISCOVER PARAMS #######################################
+############################## DISCOVER PARAMS ########################
 params_model_DSCOVR : 
 - ["time", "bx_gse", "by_gse", "bz_gse","fs_4", "fs_5", "fs_6", "fs_7", "fs_8", "fs_9","fs_10", "fs_11", "fs_12", "fs_13", "fs_14", "fs_15",
 "fs_16", "fs_17", "fs_18", "fs_19", "fs_20", "fs_21","fs_22", "fs_23", "fs_24", "fs_25", "fs_26", "fs_27",
@@ -24,9 +24,10 @@ start_date: '09/29/2023'
 end_date: '09/30/2023'
 ########################################################################
 # CASSIOPE Parameters
-output_filename_cass: '/Users/jl/Documents/Projects/SV-NASA/database/CASSIOPE/'
-settings_target: 'kp'
-settings_target_value: 0
+input_filename_cass: '/Users/jl/Documents/Projects/SV-NASA/database/CASSIOPE/data80/'
+output_filename_cass: '/Users/jl/Documents/Projects/SV-NASA/database/CASSIOPE/Data_Cassiope/'
+settings_target: 'KP'
+settings_target_value: 80
 params_cass :
 - [['batt_curr_time','batt_curr'],['batt_volt_time','batt_volt'],['certo_curr_time','certo_curr'],['fai_curr_time','fai_curr'],
         ['gap_curr_time','gap_curr'],['irm_curr_time','irm_curr'],['mag_a_curr_time','mag_a_curr'],['mag_b_curr_time','mag_b_curr'],
@@ -37,13 +38,14 @@ params_cass :
         ['tr_cmdtrq_x_time','tr_cmdtrq_x'],['tr_cmdtrq_y_time','tr_cmdtrq_y'],['tr_cmdtrq_z_time','tr_cmdtrq_z'],['tx_a_curr_time','tx_a_curr'],['tx_b_curr_time','tx_b_curr']]
 ########################################################################
 # Data Integrations beteween CASSIOPE and DSCOVR DataSets
-PATH_FILE_CASS : '/Users/jl/Documents/Projects/SV-NASA/database/CASSIOPE/'
-PATH_OUTPUT: 'datasetsml/'
-PATH_FILE : '/Users/jl/Documents/Projects/SV-NASA/database/DSCOVR_PlasMAG/db_Plasma_2016-2023.csv'
+PATH_FILE_CASS : '/Users/jl/Documents/Projects/SV-NASA/database/CASSIOPE/Data_Cassiope/'
+PATH_OUTPUT: 'datasetsml2024_short/'
+TIME_DELTA : '20min'
+PATH_FILE : '/Users/jl/Documents/Projects/SV-NASA/database/DSCOVR_PlasMAG/db_Plasma_2022-2023.csv'
 ############################DATA ENGINEERING AND TRAINING############################
 # Data Engineering and Training
-TARGET_ML : 'lab'# This variable repesent Kp*10 Index
-PATH_DATASET : 'datasetsml/MLDataSet_batt_curr.csv'
-DROP_COLUMNS : [0,1,3] 
-PATH_OUTPUT_TRAINING : 'training_output'
+TARGET_ML : 'KP'
+PATH_DATASET : 'datasetsml2024_short/MLDataSet_batt_curr.csv'
+DROP_COLUMNS : [0,-2,-3] 
+PATH_OUTPUT_TRAINING : 'training_output2024'
 PATH_MODELS : 'models'

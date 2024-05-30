@@ -1,38 +1,23 @@
 
+import yaml
 import pandas as pd
 import os
 import matplotlib.pyplot as plt
-import matplotlib.colors as pltcolors
-from datetime import datetime
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
-from sklearn.svm import SVR
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import GridSearchCV, cross_validate, cross_val_score, RandomizedSearchCV
-from sklearn.utils import shuffle
-from sklearn.ensemble import RandomForestClassifier , GradientBoostingClassifier
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, r2_score
-from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import accuracy_score
 from sklearn.metrics import classification_report, confusion_matrix
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.ensemble import ExtraTreesClassifier
-from sklearn.neural_network import MLPRegressor, MLPClassifier
-from sklearn.decomposition import PCA, KernelPCA, IncrementalPCA
+from sklearn.neural_network import  MLPClassifier
 from sklearn.model_selection import KFold
-from sklearn.svm import SVC
 import joblib
-from xgboost import XGBRegressor
-import xgboost as xgb
-from scipy.stats import zscore
 import numpy as np
-import seaborn as sns
-import math
-import copy
-from scipy import stats
-#import librosa, librosa.display
-from scipy import stats
-from scipy.stats import kurtosis, skew
+
+with open('NNconfig.yaml', 'r') as file:
+    params_model = yaml.safe_load(file)
+
 class RedNeuronal(object):
-    def __init__(self, data,target,SEED):
+    def __init__(self,data,target,SEED):
         self.data=data
         self.target= target
         self.SEED= SEED
@@ -63,8 +48,24 @@ class RedNeuronal(object):
         print(classification_report(y_test,y_pred))
         bnd= accuracy_score(y_test,y_pred)
         return bnd
-    def Generate_Neuronal_Model_KNFold(self,activation,neu1,neu2,N_SP,path_file,iterations):
-        # This code serves to fit model with activation function, neurons for each level
+    def Generate_Neuronal_Model_KNFold(self,params,N_SP,path_file):
+        """
+        Generates a neural model using K-Fold Cross Validation.
+
+        Args:
+            params (dict): A dictionary of parameters for the MLP classifier. 
+                        It should contain the following keys: 'activation', 'hidden_layer_sizes', 
+                        'learning_rate_init', 'max_iter', 'solver'.
+            N_SP (int): The number of splits for K-Fold cross validation.
+            path_file (str): The path to the file containing the data to be used.
+
+        Returns:
+            None. The method fits the neural model and saves the trained model in the class attribute.
+
+        Raises:
+            ValueError: If `params` does not contain the necessary keys.
+            FileNotFoundError: If `path_file` does not point to an existing file.
+        """
         X = self.data.drop(self.target, axis=1)
         y = self.data[self.target].to_numpy()
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=self.SEED)
@@ -73,13 +74,12 @@ class RedNeuronal(object):
         scaler.fit(X_train)
         X_train = scaler.transform(X_train)
         X_test = scaler.transform(X_test)
-        n_train= X_train.shape[0]
-        n_test= X_test.shape[0]
         # Create Model with 2 capas
-        hidden_layer_sizes = (neu1, neu2)
-        clf = MLPClassifier(solver='lbfgs', hidden_layer_sizes=hidden_layer_sizes, activation=activation, max_iter=iterations, random_state=42, learning_rate_init=0.1)
-        ft=self.K_Fold(clf,N_SP,X_train,y_train,X_test, n_train , n_test,path_file) # This objetc contained all inforamtion about models generated in Kfolds
-        best=-99
+        clf = MLPClassifier(**params, random_state=self.SEED)
+        ft=self.K_Fold(clf,N_SP,X_train,y_train,path_file) # This objetc contained all inforamtion about models generated in Kfolds
+        best_acurracy=-99
+        acum_acurracy=0
+        average_acurracy=0
         k=0
         savedir= os.path.join(os.getcwd(),path_file)
         file_scaler= 'scaler.pkl'
@@ -97,14 +97,20 @@ class RedNeuronal(object):
             print("Report of Clasification Indicator")
             print(classification_report(y_test, y_pred))
             print("End Results Model  :", i , " Fold")
-            ac=accuracy_score(y_test,y_pred)
-            if ac> best:
-                best=ac
+            print("##############################################")
+            current_acurracy=accuracy_score(y_test,y_pred)
+            if current_acurracy > best_acurracy:
+                best_acurracy=current_acurracy
+                acum_acurracy+=best_acurracy
                 k=i
+        average_acurracy=acum_acurracy/N_SP        
         best_model= joblib.load(ft[k])
         model_return.append(best_model)
         model_return.append(scaler)
         model_return.append(k)
+        # The best model is the model with the best accuracy
+        print("The Best Model is  Model ", k , " with a acurracy_score of : ", best_acurracy )
+        print("The average acurracy_score is : ", average_acurracy)
         return model_return
 
     def Generate_Neuronal_Model(self,activation,neu1,neu2):
@@ -131,10 +137,7 @@ class RedNeuronal(object):
         x_test = scaler.transform(data_test)
         y_pred= clf.predict(x_test)
         return y_pred
-    def K_Fold(self,clf,N_SP,X_train,y_train,X_test,n_train,n_test,path_file):
-        f_train = np.zeros((n_train,))
-        f_test = np.zeros((n_test,))
-        f_test_skf = np.empty((N_SP, n_test))
+    def K_Fold(self,clf,N_SP,X_train,y_train,path_file):
         kf= KFold(n_splits=N_SP,shuffle= True)
         kf.get_n_splits(X_train)
         savedir= os.path.join(os.getcwd(),path_file)
@@ -142,36 +145,65 @@ class RedNeuronal(object):
         for i, (train_index, test_index) in enumerate(kf.split(X_train)):
             x_tr = X_train[train_index] # Data X of training process
             y_tr = y_train[train_index] # Data y of training process
-            x_te = X_train[test_index] # Data X of training process
             filename= 'model'+ str(i)+'.pkl'
             filename = os.path.join(savedir, filename)
             models_name.append(filename)
             clf.fit(x_tr,y_tr)
             joblib.dump(clf,filename)
-            #f_train[test_index] = clf.predict(x_te) # Value of prediction with internal test data
-            #f_test_skf[i, :] = clf.predict(X_test) # For each model testint the data external test data
-        #f_test[:] = f_test_skf.mode(axis=0) # Mode of all splits generates}
         return models_name
 
-    def GridSearch_Hyperparamters(self,n_cap1, n_cap2):
-        # Cuadricula de posibles párametros
+    def find_best_Hyperparamters(self,find_method_=0,n_cap0=0,n_cap1=2,n_cap2=2):
+        """
+        This function performs hyperparameter tuning for an MLPClassifier using GridSearchCV or RandomizedSearchCV.
+
+        Parameters:
+            n_cap0 (int): The lower limit for the number of neurons in the first and second hidden layer to consider.
+            n_cap1 (int): The upper limit for the number of neurons in the first hidden layer to consider.
+            n_cap2 (int): The upper limit for the number of neurons in the second hidden layer to consider.
+            find_method_ (int): 0 for GridSearchCV, 1 for RandomizedSearchCV.
+
+        Returns:
+            dict: A dictionary containing the best hyperparameters found.
+
+        Usage:
+            best_params = object.find_best_Hyperparamters(10, 10)
+
+        This will perform hyperparameter tuning considering all combinations of 2 to 10 neurons in the first hidden layer and 2 to 10 neurons in the second hidden layer.
+
+        The returned dictionary will have the following structure:
+            {
+                'hidden_layer_sizes': (best number of neurons in first hidden layer, best number of neurons in second hidden layer),
+                'solver': best solver,
+                'activation': best activation function,
+                'max_iter': best maximum number of iterations,
+                'learning_rate_init': best initial learning rate
+        }
+        """
         X = self.data.drop(self.target, axis=1)
-        y = self.data[self.target].ravel()
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=self.SEED)
-        # Transform data
+        y = self.data[self.target].to_numpy()
+        print(y)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=params_model['test_size'], random_state=self.SEED)
         scaler = MinMaxScaler(feature_range=(0, 1))
         scaler.fit(X_train)
         X_train = scaler.transform(X_train)
         X_test = scaler.transform(X_test)
         layers=[]
-        activation=['logistic', 'relu', 'identity', 'tanh']
-        solver= ["lbfgs"]
-        for i in range(1,n_cap1):
-            for j in range(1,n_cap2):
+        for i in range(n_cap0,n_cap1):
+            for j in range(n_cap0,n_cap2):
                 layers.append((i,j))
-        params={"hidden_layer_sizes":layers,"solver":solver,"activation":activation}
-        clf= MLPClassifier(max_iter=10000, random_state=42, learning_rate_init=0.1)
-        clf= GridSearchCV(clf,params,cv=5,n_jobs=-1) # Usa Cross Validation
+        params_grid={"hidden_layer_sizes":layers,
+                    "solver":params_model['solver'],
+                    "activation":params_model['activation'],
+                    "max_iter": params_model['max_iter_i'],
+                    "learning_rate_init":params_model['learning_rate_init']}
+        print(params_grid)
+        clf= MLPClassifier(random_state=self.SEED)
+        if find_method_==0:
+            print("Grid Search")
+            clf= GridSearchCV(clf,params_grid,cv=params_model['cross_validation'],n_jobs=-1)
+        else:
+            print("Randomized Search")
+            clf= RandomizedSearchCV(clf,params_grid,cv=params_model['cross_validation'],n_iter=params_model['n_iter'],n_jobs=-1)   
         clf.fit(X_train,y_train)
         return clf.best_params_
 
